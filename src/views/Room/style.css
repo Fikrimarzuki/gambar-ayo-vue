@@ -1,0 +1,165 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+
+/* Index */
+.gamePage {
+  width: 100vw;
+  height: 100vh;
+  background-color: whitesmoke;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.topSide {
+  display: flex;
+  width: 70vw;
+  height: 65vh;
+}
+
+/* Canvass */
+.rightSide {
+  border: 1px solid;
+  width: 80%;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 5px;
+}
+
+.bp3-progress-bar {
+  width: 90%;
+}
+
+.canvas {
+  border: 1px solid;
+  margin-bottom: 1vh;
+}
+
+.rightSide .container-top {
+  display: flex;
+  justify-content: center;
+  width: 95%;
+  margin-left: 3vw;
+}
+
+.rightSide .container-top .btn {
+  margin-right: 1vw;
+  width: 2vw;
+  height: 2vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Chat */
+.bottomSide {
+  border: 1px solid;
+  margin-top: 2vh;
+  width: 70vw;
+  height: 20vh;
+  background-color: white;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+}
+
+.chatSide {
+  width: 35vw;
+}
+
+.vote-modal {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 35vw;
+  height: 50vh;
+}
+
+.vote-radio {
+  margin-left: 10vw;
+  max-height: 15vh;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  width: 20vw;
+}
+
+.bp3-control {
+  margin: 1vh 0;
+}
+
+.bp3-progress-bar {
+  width: 70%;
+}
+
+#messages {
+  overflow: scroll;
+  overflow-x: auto;
+  overflow-wrap: break-word;
+  height: 55%;
+  width: 100%;
+  box-sizing: content-box;
+  margin-top: 8px;
+  padding-left: 3px;
+}
+
+#chatInput {
+  margin-top: 5px;
+  width: 100%;
+}
+
+/* Player */
+.leftSide {
+  border: 1px solid;
+  border-radius: 5px;
+  width: 22%;
+  overflow: auto;
+  margin-right: 1vw;
+  background-color: white;
+}
+
+h5 {
+  margin: 0 !important;
+}
+
+.bp3-card {
+  padding: 1vh 1vw;
+}
+
+.card-leaderboard {
+  background-color: ghostwhite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 4vh;
+}
+
+.card-avatar {
+  display: flex;
+  padding: 1vh 1vw;
+  height: 10vh;
+}
+
+.card-avatar img {
+  width: 3vw;
+  height: 6vh;
+  margin-right: 1vw;
+  border-radius: 20px;
+}
+
+.card-player-name {
+  display: flex;
+  justify-content: space-evenly;
+  flex-direction: column;
+  width: 10vw;
+}
+
+.card-player-name p {
+  margin: 0;
+}

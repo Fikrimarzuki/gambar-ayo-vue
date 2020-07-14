@@ -1,0 +1,60 @@
+* {
+  padding: 0 auto;
+  margin: 0 auto;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid black;
+  border-radius: 2vw;
+  margin: 10rem 5rem;
+}
+
+.container-height {
+  max-height: 500px;
+}
+
+.btn-lobby {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  margin: 1rem;
+  padding: 0rem 5rem;
+}
+
+.rooms {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-content: flex-start;
+  margin: 1rem;
+  min-height: 342px;
+  max-height: 342px;
+  overflow: auto;
+}
+
+.room-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-content: center;
+  width: 15vw;
+  height: 25vh;
+  margin: 2rem;
+  border-radius: 20px;
+}
+
+.alert-text {
+  text-align: center;
+}
+
+.card:hover {
+  cursor: pointer;
+}
+
+/* .loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+} */

@@ -1,71 +1,82 @@
 <template>
-  <div class="board">
-    <div class="main">
-      <div class="avatarboard">
-        <div style="display: flex; justifyContent: center">
-          <div class="circle">
-            <label class="paper-btn margin" for="modal-1">
-              <img :src="useAvatar" alt="" style="width: 80%" />
-            </label>
-          </div>
-          <input class="modal-state" id="modal-1" type="checkbox" />
-          <div class="modal">
-            <label class="modal-bg" for="modal-1"></label>
-            <div class="modal-body">
-              <label class="btn-close" for="modal-1" style="cursor: pointer">
-                X
-              </label>
-              <h4 class="modal-title">Modal Title</h4>
-              <div class="table">
-                <div v-for="(avatar, index) in avatars" :key="index">
-                  <label for="modal-1">
-                    <div
-                      class="card card-avatar"
-                      @click="selectAvatar(avatar.src)"
-                    >
-                      <div class="card-body">
-                        <img
-                          :src="avatar.src"
-                          alt=""
-                          width="15%"
-                          style="cursor: pointer"
-                        />
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="md-layout md-gutter md-alignment-center-center">
+    <div class="md-alignment-center-center">
+      <div style="max-width: 300px">
+        <img :src="selectedAvatar" alt="" style="width: 80%" />
+        <md-button @click="showDialog = !showDialog">{{
+          $t("landingPage.title")
+        }}</md-button>
+      </div>
 
-        <div
-          style="display: flex; flexDirection: column; alignItems: center; margin: 20px"
+      <div
+        style="display: flex; flexDirection: column; alignItems: center; margin: 20px"
+      >
+        <label style="color: white">{{ $t("landingPage.name") }}</label>
+        <input
+          type="text"
+          :placeholder="$t('landingPage.placeholder')"
+          @keyup.enter="login"
+          v-model="name"
+        />
+        <md-button class="md-raised md-primary btn-login" @click="login"
+          >Login</md-button
         >
-          <label for="inputName">Name</label>
-          <input
-            type="text"
-            id="inputName"
-            placholder="name 24434"
-            @keyup.enter="login"
-            v-model="name"
-          />
-          <button style="margin: 20px" @click="login">Login</button>
-        </div>
       </div>
     </div>
+
+    <!-- MODAL CHOOSE AVATAR -->
+    <md-dialog :md-active.sync="showDialog">
+      <div
+        class="md-medium-size-33 md-small-size-100 md-xsmall-size-100"
+        style="padding: 20px; width: 100%"
+      >
+        <div>
+          <md-dialog-title>CHOOSE YOUR AVATAR</md-dialog-title>
+        </div>
+        <div style="display: flex">
+          <div
+            v-for="(item, index) in avatars"
+            :key="index"
+            style="text-align: center;"
+          >
+            <md-card>
+              <md-card-media>
+                <img
+                  :src="item.src"
+                  alt=""
+                  width="50%"
+                  style="cursor: pointer"
+                  @click="selectAvatar(item.src)"
+                  :style="
+                    item.src === selectedAvatar ? 'background-color: white' : ''
+                  "
+                />
+              </md-card-media>
+            </md-card>
+          </div>
+        </div>
+      </div>
+      <md-dialog-actions>
+        <md-button class="md-primary" @click="cancelChoose">Cancel</md-button>
+        <md-button class="md-primary" @click="applyAvatar">Save</md-button>
+      </md-dialog-actions>
+    </md-dialog>
   </div>
 </template>
 
 <script>
-// import "../../../node_modules/papercss/dist/paper.css";
+import { mapActions, mapMutations, mapGetters } from "vuex";
 
 export default {
   name: "LandingPage",
+  computed: {
+    ...mapGetters(["playerName", "usedAvatar"])
+  },
   data() {
     return {
       name: "",
-      useAvatar: "",
+      selectedAvatar: "",
+      showDialog: false,
       avatars: [
         {
           src: require("../../assets/avatar/gambar-ayo-avatar-chameleon.png")
@@ -89,57 +100,50 @@ export default {
     };
   },
   methods: {
+    ...mapActions(["postPlayer"]),
+    ...mapMutations(["SET_AVATAR", "SET_PLAYERID"]),
     async login() {
       const playerData = {
         name: this.name,
-        avatar: this.useAvatar
+        avatar: this.usedAvatar
       };
-      console.log(playerData);
-      this.$router.push("/lobby");
+      const player = await this.postPlayer(playerData);
+      if (player && player.data != null) {
+        localStorage.setItem("g-a-player-data", player.data);
+        this.SET_PLAYERID(player.data);
+        this.$router.push("/lobby");
+      }
     },
     selectAvatar(avatar) {
-      console.log(avatar);
-      this.useAvatar = avatar;
+      this.selectedAvatar = avatar;
+    },
+    applyAvatar() {
+      this.SET_AVATAR(this.selectedAvatar);
+      this.showDialog = !this.showDialog;
+    },
+    cancelChoose() {
+      this.showDialog = !this.showDialog;
+      this.selectedAvatar = this.usedAvatar;
     }
   },
   async created() {
-    this.useAvatar = this.avatars[0].src;
+    this.selectedAvatar = this.avatars[0].src;
+    this.SET_AVATAR(this.avatars[0].src);
   }
 };
 </script>
 
 <style lang="scss" scoped>
-.board {
-  display: "flex";
-  justify-content: "center";
-  align-items: "center";
-  height: "969px";
-  background-color: "rgb(216, 227, 231)";
+.md-card {
+  box-shadow: none;
 }
 
-.main {
-  // backgroundColor: 'cadetblue',
-  background-image: "url(https://visme.co/blog/wp-content/uploads/2017/07/50-Beautiful-and-Minimalist-Presentation-Backgrounds-031.jpg)";
-  width: "60%";
-  height: "60%";
-  display: "flex";
-  justify-content: "center";
-  // borderRadius: '50px',
-  border-bottom-left-radius: "15px 255px";
-  border-bottom-right-radius: "225px 15px";
-  border-top-left-radius: "255px 15px";
-  border-top-right-radius: "15px 225px";
-  align-items: "center";
-  box-shadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)";
+.md-card:hover {
+  background-color: white;
 }
 
-.avatarboard {
-  margin-bottom: "80px";
-  margin-top: "60px";
-  display: "flex";
-  flex-direction: "column";
-  justify-content: "center";
-  align-items: "center";
-  font-family: '"Patrick Hand SC",sans-serif';
+.btn-login {
+  margin-top: 20px;
+  border-radius: 3px;
 }
 </style>

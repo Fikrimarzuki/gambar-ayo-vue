@@ -6,22 +6,35 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    loading: false,
-    error: null,
-    open: false,
+    isLoading: false,
     name: false,
     avatar: null,
-    canvass: null,
     playerId: null,
-    inRoom: null,
-    gameLoading: false,
     rooms: [],
     roomName: "",
     password: "",
-    openPass: false,
+    canvass: null,
+    inRoom: null,
+    gameLoading: false,
     passEntry: "",
-    openAlert: false,
     playersInRoom: []
+  },
+  getters: {
+    isLoading(state) {
+      return state.isLoading;
+    },
+    playerName(state) {
+      return state.name;
+    },
+    usedAvatar(state) {
+      return state.avatar;
+    },
+    playerId(state) {
+      return state.playerId;
+    },
+    rooms(state) {
+      return state.rooms;
+    }
   },
   mutations: {
     SET_LOADING(state, payload) {
@@ -29,9 +42,6 @@ export default new Vuex.Store({
     },
     SET_ERROR(state, payload) {
       state.error = payload;
-    },
-    SET_OPEN(state, payload) {
-      state.open = payload;
     },
     SET_NAME(state, payload) {
       state.name = payload;
@@ -74,25 +84,19 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    postPlayer(context, payload) {
-      firebaseServer
-        .post("/players", payload)
-        .then(({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
+    async postPlayer(context, payload) {
+      const { data } = await firebaseServer.post("/players", payload);
+      return data;
     },
-    getOnePlayer(context, payload) {
-      firebaseServer
-        .get("/players/", payload.id)
-        .then(({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
+    async getOnePlayer(context, payload) {
+      const data = await firebaseServer.get("/players/", payload.id);
+      return data;
+      // .then(({ data }) => {
+      //   console.log(data);
+      // })
+      // .catch(err => {
+      //   console.log(err.response);
+      // });
     },
     onePlayer(context, id) {
       firebaseServer
@@ -104,26 +108,21 @@ export default new Vuex.Store({
           console.log(err.response);
         });
     },
-    fetchRooms(context) {
-      console.log(context);
-      firebaseServer
-        .get("/rooms")
-        .then(({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
+    async fetchRooms(context) {
+      const { data } = await firebaseServer.get("/rooms");
+      console.log(data, "====");
+      if (data === null || data.data === null) {
+        context.commit("SET_ROOMS", []);
+      } else {
+        context.commit("SET_ROOMS", data.data);
+      }
+      return data;
     },
-    postRooms(context, value) {
-      firebaseServer
-        .post("/rooms", value)
-        .then(({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
+    async postRooms(context, value) {
+      const data = await firebaseServer.post("/rooms", value);
+      context.dispatch("fetchRoom");
+      context.commit("SET_INROOM", true);
+      return data;
     },
     async mapPlayers(context, payload) {
       console.log(context, payload);

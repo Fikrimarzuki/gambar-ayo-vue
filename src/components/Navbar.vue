@@ -3,11 +3,19 @@
     <router-link to="/">Home</router-link> |
     <router-link to="/lobby">Lobby</router-link> |
     <router-link to="/room">Room</router-link>
+    <Language />
   </div>
 </template>
 
 <script>
-export default {};
+import Language from "./Language";
+
+export default {
+  name: "Navbar",
+  components: {
+    Language
+  }
+};
 </script>
 
 <style lang="scss" scoped>

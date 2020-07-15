@@ -35,31 +35,37 @@
             >
           </div>
         </Dialog> -->
-        <div v-if="isExit">
-          <h2 class="card-title">Exit the room ?</h2>
-          <div style="display: flex">
-            <button type="text" @click="handleExit">Yes</button>
-            <button type="text" @click="isExit = !isExit">No</button>
-          </div>
+        <div>
+          <md-dialog :md-active.sync="isExit">
+            <h2 class="card-title">Exit the room ?</h2>
+            <div style="display: flex">
+              <button type="text" @click="handleExit">Yes</button>
+              <button type="text" @click="isExit = !isExit">No</button>
+            </div>
+          </md-dialog>
         </div>
+      </div>
 
-        <div class="rightSide">
-          <div class="container-top">
-            <h1>Ulat Bulu</h1>
-            <button class="btn">
-              <Icon icon="log-out" @click="openModal('exit-room')">Exit</Icon>
-              <!-- <span icon="log-out" @click="openModal('exit-room')">Exit</span> -->
-            </button>
-          </div>
-          <!-- CANVASS -->
-          <div class="canvass">
-            <canvass></canvass>
-          </div>
-          <!-- progress bar -->
-          <!-- <ProgressBar /> -->
-          <h3>Time Out</h3>
-          <button @click="handleTurn">Next</button>
+      <div class="rightSide">
+        <div class="container-top">
+          <h1>Ulat Bulu</h1>
+          <button class="btn">
+            <span icon="log-out" @click="openModal('exit-room')">Exit</span>
+          </button>
         </div>
+        <!-- CANVASS -->
+        <div class="canvass">
+          <canvass id="canvass"></canvass>
+        </div>
+        <div>
+          <md-progress-bar
+            md-mode="determinate"
+            :md-value="progress"
+          ></md-progress-bar>
+          <input type="range" v-model.number="progress" style="disable: none" />
+        </div>
+        <h3>Time Out</h3>
+        <button @click="handleTurn">Next</button>
       </div>
     </div>
 
@@ -90,17 +96,6 @@
 </template>
 
 <script>
-// import "@blueprintjs/core/lib/css/blueprint.css";
-// import {
-//   RadioGroup,
-//   Radio,
-//   Dialog,
-//   ProgressBar,
-//   Icon,
-//   Card,
-//   AnchorButton
-// } from "@blueprintjs/core";
-
 import "./style.css";
 
 export default {
@@ -109,18 +104,12 @@ export default {
     return {
       isExit: false,
       playersInRoom: [],
-      message: ""
+      message: "",
+      progress: 0,
+      vueCanvass: null,
+      rectWidth: 200
     };
   },
-  // components: {
-  //   RadioGroup,
-  //   Radio,
-  //   Dialog,
-  //   ProgressBar,
-  //   Icon,
-  //   Card,
-  //   AnchorButton
-  // },
   methods: {
     handleExit() {
       console.log("exit room");
@@ -133,7 +122,40 @@ export default {
     },
     sendChat() {
       console.log(this.message);
+    },
+    drawRect() {
+      // Clear Canvas
+      this.vueCanvass.clearRect(0, 0, 400, 200);
+
+      // Draw Rect
+      this.vueCanvass.beginPath();
+      this.vueCanvass.rect(20, 20, this.rectWidth, 100);
+      this.vueCanvass.stroke();
+    },
+    addWidth() {
+      this.rectWidth += 10;
+      this.drawRect();
+    },
+    subWidth() {
+      this.rectWidth -= 10;
+      this.drawRect();
     }
+  },
+  mounted() {
+    const canvass = document.getElementById("canvass");
+    const ctx = canvass.getContext("2d");
+    this.vueCanvass = ctx;
+  },
+  async created() {
+    setInterval(() => {
+      this.progress += 33;
+      setInterval(() => {
+        this.prgoress += 33;
+        setInterval(() => {
+          this.progress += 34;
+        }, 3000);
+      }, 2000);
+    }, 1000);
   }
 };
 </script>

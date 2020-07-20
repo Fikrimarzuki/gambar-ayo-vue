@@ -11,6 +11,7 @@ export default new Vuex.Store({
     avatar: null,
     playerId: null,
     rooms: [],
+    room: null,
     roomName: "",
     password: "",
     canvass: null,
@@ -34,6 +35,15 @@ export default new Vuex.Store({
     },
     rooms(state) {
       return state.rooms;
+    },
+    room(state) {
+      return state.room;
+    },
+    inRoom(state) {
+      return state.inRoom;
+    },
+    playersInRoom(state) {
+      return state.playersInRoom;
     }
   },
   mutations: {
@@ -64,6 +74,9 @@ export default new Vuex.Store({
     SET_ROOMS(state, payload) {
       state.rooms = payload;
     },
+    SET_ROOM(state, payload) {
+      state.room = payload;
+    },
     SET_ROOM_NAME(state, payload) {
       state.roomName = payload;
     },
@@ -88,90 +101,83 @@ export default new Vuex.Store({
       const { data } = await firebaseServer.post("/players", payload);
       return data;
     },
-    async getOnePlayer(context, payload) {
-      const data = await firebaseServer.get("/players/", payload.id);
+    async getPlayer(context, id) {
+      const { data } = await firebaseServer.get("/players/", id);
       return data;
-      // .then(({ data }) => {
-      //   console.log(data);
-      // })
-      // .catch(err => {
-      //   console.log(err.response);
-      // });
-    },
-    onePlayer(context, id) {
-      firebaseServer
-        .get("/players/", id)
-        .then(({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
     },
     async fetchRooms(context) {
       const { data } = await firebaseServer.get("/rooms");
       console.log(data, "====");
-      if (data === null || data.data === null) {
+      if (data === null || data.length === 0) {
         context.commit("SET_ROOMS", []);
       } else {
-        context.commit("SET_ROOMS", data.data);
+        context.commit("SET_ROOMS", data);
       }
       return data;
     },
     async postRooms(context, value) {
-      const data = await firebaseServer.post("/rooms", value);
+      const { data } = await firebaseServer.post("/rooms", value);
+      console.log(data, "post room");
       context.dispatch("fetchRoom");
-      context.commit("SET_INROOM", true);
+      context.commit("SET_INROOM", data);
       return data;
     },
     async mapPlayers(context, payload) {
       console.log(context, payload);
-      // let players = [];
-      // await payload.slice().forEach(async (id) => {
-      //   let player = await dispatch(onePlayer(id));
-      //   players.push(player);
-      // });
-      // return players;
+      let players = [];
+      await payload.slice().forEach(async id => {
+        let player = await context.dispatch("getPlayer", id);
+        players.push(player);
+      });
+      return players;
     },
-    joinRoom(context, payload) {
-      firebaseServer
-        .put(`/rooms/${payload.id}/join`, {
-          playerId: "payload/playerId"
-        })
-        .then(() => {
-          console.log("join room");
-          // return firebaseServer.get("/rooms/", payload.id)
-        })
-        .then(async ({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
+    async joinRoom(context, payload) {
+      await firebaseServer.put(`/rooms/${payload.id}/join`, {
+        playerId: payload.playerId
+      });
+      const { data } = await firebaseServer.get(`/rooms/${payload.id}`);
+      console.log(data, "join room");
+      let players = await context.dispatch("mapPlayers", data.Players);
+      await context.commit("SET_INROOM", data);
+      await context.commit("SET_PLAYERSINROOM", players);
+      return data;
     },
-    leaveRoom(context, payload) {
-      firebaseServer
-        .put(`/rooms/${payload.id}/leave`, { playerId: payload.playerId })
-        .then(() => {
-          console.log("leave");
-          // return firebaseServer.get("rooms/", payload.id)
-        })
-        .then(async ({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
-        });
+    async leaveRoom(context, payload) {
+      console.log(payload);
+      const leaveData = await firebaseServer.put(`/rooms/${payload.id}/leave`, {
+        playerId: payload.playerId
+      });
+      console.log(leaveData.data, "leave Data");
+      if (!leaveData.data.isRoomDeleted) {
+        const { data } = await firebaseServer.get(`/rooms/${payload.id}`);
+        console.log(data, "leave room");
+        const players = await context.dispatch("mapPlayers", data.Players);
+        await context.commit("SET_INROOM", null);
+        await context.commit("SET_PLAYERSINROOM", []);
+        return { data, players };
+      }
+      return false;
     },
-    fetchRoom(context, roomNumber) {
-      firebaseServer
-        .get("/rooms/", roomNumber)
-        .then(({ data }) => {
-          console.log(data);
-        })
-        .catch(err => {
-          console.log(err.response);
+    async getPlayersInRoom(context, roomNumber) {
+      const { data } = await firebaseServer.get(`/rooms/${roomNumber}`);
+      console.log(data, "get players in room");
+      let players = [];
+      if (data.Players && data.Players.length !== 0) {
+        console.log(data.Players, "players");
+        await data.Players.forEach(async el => {
+          let player = await firebaseServer.get(`/players/${el}`);
+          console.log(player.data);
+          players.push(player.data);
         });
+      }
+      context.commit("SET_PLAYERSINROOM", players);
+    },
+    async fetchRoom(context, roomNumber) {
+      console.log(roomNumber, "roomNumber");
+      const { data } = await firebaseServer.get(`/rooms/${roomNumber}`);
+      console.log(data, "data");
+      context.commit("SET_ROOM", data);
+      return data;
     }
   },
   modules: {}

@@ -20,27 +20,23 @@
             <img :src="player.avatar" :alt="player.name" />
             <div class="card-player-name">
               <h5>{{ player.name }}</h5>
-              <p>5</p>
             </div>
           </div>
         </div>
 
         <!-- MODAL EXIT ROOM -->
-        <!-- <Dialog v-if="isExit">
-          <h2 class="card-title">Exit the room ?</h2>
-          <div style="display: flex">
-            <AnchorButton type="text" @click="handleExit">Yes</AnchorButton>
-            <AnchorButton type="text" @click="isExit = !isExit"
-              >No</AnchorButton
-            >
-          </div>
-        </Dialog> -->
         <div>
           <md-dialog :md-active.sync="isExit">
             <h2 class="card-title">Exit the room ?</h2>
             <div style="display: flex">
-              <button type="text" @click="handleExit">Yes</button>
-              <button type="text" @click="isExit = !isExit">No</button>
+              <md-dialog-actions>
+                <md-button class="md-primary" @click="handleExit"
+                  >Yes</md-button
+                >
+                <md-button class="md-primary" @click="isExit = !isExit"
+                  >No</md-button
+                >
+              </md-dialog-actions>
             </div>
           </md-dialog>
         </div>
@@ -49,20 +45,35 @@
       <div class="rightSide">
         <div class="container-top">
           <h1>Ulat Bulu</h1>
-          <button class="btn">
-            <span icon="log-out" @click="openModal('exit-room')">Exit</span>
-          </button>
+          <md-button
+            class="md-raised md-primary btn-login"
+            @click="openModal('exit-room')"
+          >
+            Exit
+          </md-button>
         </div>
         <!-- CANVASS -->
-        <div class="canvass">
-          <canvass id="canvass"></canvass>
+        <div class="canvas" v-if="isTurn">
+          <canvas
+            id="canvas"
+            width="600"
+            height="250"
+            @mousemove="draw"
+            @mousedown="beginDrawing"
+            @mouseup="stopDrawing"
+            @mouseleave="stopDrawing"
+          ></canvas>
+        </div>
+        <div class="canvas" v-else>
+          <canvas id="canvasListen" ref="canvasListen" width="600" height="250">
+          </canvas>
         </div>
         <div>
           <md-progress-bar
             md-mode="determinate"
             :md-value="progress"
+            class="progress"
           ></md-progress-bar>
-          <input type="range" v-model.number="progress" style="disable: none" />
         </div>
         <h3>Time Out</h3>
         <button @click="handleTurn">Next</button>
@@ -96,66 +107,176 @@
 </template>
 
 <script>
+import { mapGetters, mapActions, mapMutations } from "vuex";
+import socket from "./socket";
 import "./style.css";
 
 export default {
   name: "Room",
+  computed: {
+    ...mapGetters(["inRoom", "playersInRoom", "rooms", "room"]),
+    isTurn() {
+      if (localStorage.isTurn === "false") {
+        return false;
+      } else {
+        return true;
+      }
+    }
+  },
   data() {
     return {
       isExit: false,
-      playersInRoom: [],
       message: "",
       progress: 0,
-      vueCanvass: null,
-      rectWidth: 200
+      canvas: null,
+      x: 0,
+      y: 0,
+      isDrawing: false,
+      points: []
     };
   },
   methods: {
-    handleExit() {
+    ...mapActions(["leaveRoom", "getPlayersInRoom", "fetchRoom"]),
+    ...mapMutations(["SET_PLAYERSINROOM"]),
+    async handleExit() {
       console.log("exit room");
+      console.log(this.inRoom, "inRoom");
+      const id = this.inRoom
+        ? this.inRoom.roomNumber
+        : localStorage.getItem("roomId");
+      const left = await this.leaveRoom({
+        id,
+        playerId: localStorage.getItem("g-a-player-data")
+      });
+      console.log(left, "left");
+      if (left) {
+        socket.emit("leave room", id);
+      } else {
+        socket.emit("all players has left room");
+      }
+      localStorage.removeItem("roomId");
+      this.isExit = false;
+      this.$router.replace("/lobby");
     },
     openModal(name) {
       console.log(name);
+      this.isExit = true;
     },
     handleTurn() {
       console.log("next");
+      const c = document.getElementById("canvasListen");
+      this.canvas.clearRect(0, 0, c.width, c.height);
+      const points = [...this.points];
+      this.points = [];
+      console.log(points, "points");
+      points.forEach(el => {
+        this.listenLine(el.x1, el.y1, el.x2, el.y2);
+      });
     },
     sendChat() {
-      console.log(this.message);
+      if (this.message) {
+        console.log(this.message);
+        const roomId = Number(localStorage.getItem("roomId"));
+        const playerId = localStorage.getItem("g-a-player-data");
+        const payload = { chat: this.message, playerId, roomId };
+        socket.emit("chat message", payload);
+      }
+      this.message = "";
     },
-    drawRect() {
-      // Clear Canvas
-      this.vueCanvass.clearRect(0, 0, 400, 200);
-
-      // Draw Rect
-      this.vueCanvass.beginPath();
-      this.vueCanvass.rect(20, 20, this.rectWidth, 100);
-      this.vueCanvass.stroke();
+    drawLine(x1, y1, x2, y2) {
+      let ctx = this.canvas;
+      ctx.beginPath();
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 1;
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.closePath();
+      socket.emit("draw canvas", { x1, y1, x2, y2 });
     },
-    addWidth() {
-      this.rectWidth += 10;
-      this.drawRect();
+    listenLine(x1, y1, x2, y2) {
+      this.points.push({ x1, y1, x2, y2 });
+      // console.log(x1, y1, x2, y2);
+      console.log(this.points);
+      let ctx = this.canvas;
+      ctx.beginPath();
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 1;
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.closePath();
     },
-    subWidth() {
-      this.rectWidth -= 10;
-      this.drawRect();
+    draw(e) {
+      if (this.isDrawing) {
+        this.drawLine(this.x, this.y, e.offsetX, e.offsetY);
+        this.x = e.offsetX;
+        this.y = e.offsetY;
+      }
+    },
+    beginDrawing(e) {
+      this.x = e.offsetX;
+      this.y = e.offsetY;
+      this.isDrawing = true;
+    },
+    stopDrawing(e) {
+      if (this.isDrawing) {
+        this.drawLine(this.x, this.y, e.offsetX, e.offsetY);
+        this.x = 0;
+        this.y = 0;
+        this.isDrawing = false;
+      }
     }
   },
   mounted() {
-    const canvass = document.getElementById("canvass");
-    const ctx = canvass.getContext("2d");
-    this.vueCanvass = ctx;
+    let c;
+    if (this.isTurn) {
+      c = document.getElementById("canvas");
+    } else {
+      c = document.getElementById("canvasListen");
+    }
+    if (c.getContext) {
+      this.canvas = c.getContext("2d");
+    }
   },
   async created() {
-    setInterval(() => {
-      this.progress += 33;
-      setInterval(() => {
-        this.prgoress += 33;
-        setInterval(() => {
-          this.progress += 34;
-        }, 3000);
-      }, 2000);
-    }, 1000);
+    await this.fetchRoom(localStorage.getItem("roomId"));
+    await this.getPlayersInRoom(localStorage.getItem("roomId"));
+    console.log(this.room, "rooms");
+    socket.on("chat message", payload => {
+      const li = document.createElement("LI");
+      const strong = document.createElement("STRONG");
+      let text;
+      if (payload.isJoin) {
+        text = document.createTextNode(`${payload.player} ${payload.message}`);
+        strong.appendChild(text);
+        li.appendChild(strong);
+      } else {
+        const username = document.createTextNode(payload.player);
+        strong.appendChild(username);
+        li.appendChild(strong);
+        text = document.createTextNode(`: ${payload.message}`);
+        li.appendChild(text);
+      }
+      document.querySelector("#messages").appendChild(li);
+    });
+
+    socket.on("player joined the room", async room => {
+      console.log(room, "socket on joined the room");
+      await this.getPlayersInRoom(room.roomNumber);
+    });
+
+    socket.on("player left the room", async room => {
+      console.log(room, "socket leave room");
+      await this.getPlayersInRoom(room.roomNumber);
+    });
+
+    socket.on("draw canvas", ({ x1, y1, x2, y2 }) => {
+      this.listenLine(x1, y1, x2, y2);
+    });
+  },
+  beforeDestroy() {
+    socket.removeAllListeners();
   }
 };
 </script>

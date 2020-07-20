@@ -8,7 +8,9 @@
     </div>
     <div v-else>
       <div class="md-layout md-gutter md-alignment-center-center">
-        <div class="md-layout-item md-medium-size-100 md-small-size-100">
+        <div
+          class="md-layout-item md-large-size-100 md-medium-size-100 md-small-size-100"
+        >
           <button class="margin" @click="isCreate = !isCreate">
             {{ $t("createRoom.btnCreate") }}
           </button>
@@ -23,7 +25,9 @@
             />
           </div>
         </div>
-        <div class="md-layout-item md-medium-size-100 md-small-size-100">
+        <div
+          class="md-layout-item md-large-size-100 md-medium-size-100 md-small-size-100"
+        >
           <div v-if="rooms.length === 0">
             <div>
               <h3>{{ $t("createRoom.noRoomTitle") }}</h3>
@@ -127,6 +131,7 @@
 </template>
 
 <script>
+import socket from "../Room/socket";
 import { mapGetters, mapActions, mapMutations } from "vuex";
 
 export default {
@@ -153,7 +158,7 @@ export default {
     };
   },
   methods: {
-    ...mapActions(["fetchRooms", "postRooms"]),
+    ...mapActions(["fetchRooms", "postRooms", "joinRoom"]),
     ...mapMutations(["SET_PLAYERID"]),
     closeModal() {
       this.isCreate = false;
@@ -166,13 +171,18 @@ export default {
         password: this.roomPassword,
         playerId: this.playerId
       };
-      console.log(newRoom);
-      const room = await this.postRooms(newRoom);
-      console.log(room);
+      const data = await this.postRooms(newRoom);
       this.roomPassword = "";
       this.roomName = "";
       this.closeModal();
-      if (room) {
+      if (data) {
+        const payload = {
+          roomNumber: data.roomNumber,
+          playerId: data.playerId
+        };
+        socket.emit("room has been created");
+        socket.emit("join room", payload);
+        localStorage.setItem("roomId", data.roomNumber);
         this.$router.replace("/room");
       }
     },
@@ -184,9 +194,19 @@ export default {
         this.isLocked = true;
         this.password = room.password;
       } else {
+        const payload = {
+          id: room.roomNumber,
+          playerId: this.playerId
+        };
+        const data = await this.joinRoom(payload);
         // axios enter room
-        console.log("enter");
-        this.$router.replace("/room");
+        if (data) {
+          console.log(data, "enter room");
+          const room = { roomNumber: data.roomNumber, playerId: this.playerId };
+          socket.emit("join room", room);
+          localStorage.setItem("roomId", data.roomNumber);
+          this.$router.replace("/room");
+        }
       }
     },
     onCancel() {
@@ -212,6 +232,14 @@ export default {
     if (playerId) {
       this.SET_PLAYERID(playerId);
     }
+
+    socket.on("room has been created", () => {
+      this.fetchRooms();
+    });
+
+    socket.on("all players has left room", () => {
+      this.fetchRooms();
+    });
   }
 };
 </script>

@@ -107,10 +107,10 @@ export default {
         name: this.name,
         avatar: this.usedAvatar
       };
-      const player = await this.postPlayer(playerData);
-      if (player && player.data != null) {
-        localStorage.setItem("g-a-player-data", player.data);
-        this.SET_PLAYERID(player.data);
+      const { playerId } = await this.postPlayer(playerData);
+      if (playerId) {
+        localStorage.setItem("g-a-player-data", playerId);
+        this.SET_PLAYERID(playerId);
         this.$router.push("/lobby");
       }
     },

@@ -7,7 +7,6 @@
           $t("landingPage.title")
         }}</md-button>
       </div>
-
       <div
         style="display: flex; flexDirection: column; alignItems: center; margin: 20px"
       >
@@ -65,16 +64,15 @@
 </template>
 
 <script>
-import { mapActions, mapMutations, mapGetters } from "vuex";
+import { mapActions, mapMutations } from "vuex";
+import Cookies from "js-cookie";
 
 export default {
   name: "LandingPage",
-  computed: {
-    ...mapGetters(["playerName", "usedAvatar"])
-  },
   data() {
     return {
       name: "",
+      usedAvatar: "",
       selectedAvatar: "",
       showDialog: false,
       avatars: [
@@ -100,7 +98,7 @@ export default {
     };
   },
   methods: {
-    ...mapActions(["postPlayer"]),
+    ...mapActions(["postPlayer", "getPlayer"]),
     ...mapMutations(["SET_AVATAR", "SET_PLAYERID"]),
     async login() {
       const playerData = {
@@ -109,7 +107,7 @@ export default {
       };
       const { playerId } = await this.postPlayer(playerData);
       if (playerId) {
-        localStorage.setItem("g-a-player-data", playerId);
+        Cookies.set("g-a-player-data", playerId, { expires: 2 });
         this.SET_PLAYERID(playerId);
         this.$router.push("/lobby");
       }
@@ -118,7 +116,7 @@ export default {
       this.selectedAvatar = avatar;
     },
     applyAvatar() {
-      this.SET_AVATAR(this.selectedAvatar);
+      this.usedAvatar = this.selectedAvatar;
       this.showDialog = !this.showDialog;
     },
     cancelChoose() {
@@ -128,7 +126,15 @@ export default {
   },
   async created() {
     this.selectedAvatar = this.avatars[0].src;
-    this.SET_AVATAR(this.avatars[0].src);
+    this.usedAvatar = this.avatars[0].src;
+    if (Cookies.get("g-a-player-data")) {
+      const player = await this.getPlayer(Cookies.get("g-a-player-data"));
+      if (player.status && player.status === 400) {
+        Cookies.remove("g-a-player-data");
+      } else {
+        this.$router.push("/lobby");
+      }
+    }
   }
 };
 </script>

@@ -76,7 +76,20 @@
           ></md-progress-bar>
         </div>
         <h3>Time Out</h3>
-        <button @click="handleTurn">Next</button>
+        <template v-if="isPlaying">
+          <md-button @click="handleTurn" class="md-raised md-primary btn-login"
+            >Next</md-button
+          >
+          <md-button @click="resetGame" class="md-raised md-primary btn-login"
+            >Reset Game</md-button
+          >
+        </template>
+        <md-button
+          @click="startGame"
+          class="md-raised md-primary btn-login"
+          v-else
+          >Play</md-button
+        >
       </div>
     </div>
 
@@ -114,13 +127,18 @@ import "./style.css";
 export default {
   name: "Room",
   computed: {
-    ...mapGetters(["inRoom", "playersInRoom", "rooms", "room"]),
+    ...mapGetters(["inRoom", "playersInRoom", "rooms", "room", "playerId"]),
     isTurn() {
       if (localStorage.isTurn === "false") {
         return false;
-      } else {
-        return true;
       }
+      return true;
+    },
+    isPlaying() {
+      if (this.room) {
+        return this.room.isPlaying;
+      }
+      return false;
     }
   },
   data() {
@@ -146,7 +164,7 @@ export default {
         : localStorage.getItem("roomId");
       const left = await this.leaveRoom({
         id,
-        playerId: localStorage.getItem("g-a-player-data")
+        playerId: this.playerId
       });
       console.log(left, "left");
       if (left) {
@@ -162,6 +180,9 @@ export default {
       console.log(name);
       this.isExit = true;
     },
+    startGame() {
+      console.log(this.room, "start");
+    },
     handleTurn() {
       console.log("next");
       const c = document.getElementById("canvasListen");
@@ -173,11 +194,14 @@ export default {
         this.listenLine(el.x1, el.y1, el.x2, el.y2);
       });
     },
+    resetGame() {
+      console.log(this.room, "reset");
+    },
     sendChat() {
       if (this.message) {
         console.log(this.message);
         const roomId = Number(localStorage.getItem("roomId"));
-        const playerId = localStorage.getItem("g-a-player-data");
+        const playerId = this.playerId;
         const payload = { chat: this.message, playerId, roomId };
         socket.emit("chat message", payload);
       }
@@ -240,9 +264,13 @@ export default {
     }
   },
   async created() {
-    await this.fetchRoom(localStorage.getItem("roomId"));
-    await this.getPlayersInRoom(localStorage.getItem("roomId"));
-    console.log(this.room, "rooms");
+    const roomId = localStorage.getItem("roomId");
+    if (roomId) {
+      await this.fetchRoom(localStorage.getItem("roomId"));
+      await this.getPlayersInRoom(localStorage.getItem("roomId"));
+    } else {
+      this.$router.go(-1);
+    }
     socket.on("chat message", payload => {
       const li = document.createElement("LI");
       const strong = document.createElement("STRONG");
@@ -260,17 +288,14 @@ export default {
       }
       document.querySelector("#messages").appendChild(li);
     });
-
     socket.on("player joined the room", async room => {
       console.log(room, "socket on joined the room");
       await this.getPlayersInRoom(room.roomNumber);
     });
-
     socket.on("player left the room", async room => {
       console.log(room, "socket leave room");
       await this.getPlayersInRoom(room.roomNumber);
     });
-
     socket.on("draw canvas", ({ x1, y1, x2, y2 }) => {
       this.listenLine(x1, y1, x2, y2);
     });

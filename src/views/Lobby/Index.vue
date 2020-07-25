@@ -131,8 +131,8 @@
 </template>
 
 <script>
+import { mapGetters, mapActions } from "vuex";
 import socket from "../Room/socket";
-import { mapGetters, mapActions, mapMutations } from "vuex";
 
 export default {
   name: "Lobby",
@@ -159,7 +159,6 @@ export default {
   },
   methods: {
     ...mapActions(["fetchRooms", "postRooms", "joinRoom"]),
-    ...mapMutations(["SET_PLAYERID"]),
     closeModal() {
       this.isCreate = false;
       this.isLocked = false;
@@ -201,7 +200,6 @@ export default {
         const data = await this.joinRoom(payload);
         // axios enter room
         if (data) {
-          console.log(data, "enter room");
           const room = { roomNumber: data.roomNumber, playerId: this.playerId };
           socket.emit("join room", room);
           localStorage.setItem("roomId", data.roomNumber);
@@ -228,15 +226,9 @@ export default {
   },
   async created() {
     await this.fetchRooms();
-    const playerId = localStorage.getItem("g-a-player-data");
-    if (playerId) {
-      this.SET_PLAYERID(playerId);
-    }
-
     socket.on("room has been created", () => {
       this.fetchRooms();
     });
-
     socket.on("all players has left room", () => {
       this.fetchRooms();
     });

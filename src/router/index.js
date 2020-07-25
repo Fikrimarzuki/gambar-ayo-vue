@@ -1,6 +1,8 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 
+import { authentication } from "./utils";
+
 const Navbar = () => import("../components/Navbar.vue");
 
 const LandingPage = () => import("../views/LandingPage/Index.vue");
@@ -23,6 +25,7 @@ const routes = [
   {
     path: "/lobby",
     name: "Lobby",
+    beforeEnter: authentication,
     components: {
       default: Lobby,
       navbar: Navbar
@@ -31,6 +34,7 @@ const routes = [
   {
     path: "/room",
     name: "Room",
+    beforeEnter: authentication,
     components: {
       default: Room,
       navbar: Navbar

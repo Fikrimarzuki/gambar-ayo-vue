@@ -23,34 +23,27 @@
             </div>
           </div>
         </div>
-
-        <!-- MODAL EXIT ROOM -->
-        <div>
-          <md-dialog :md-active.sync="isExit">
-            <h2 class="card-title">Exit the room ?</h2>
-            <div style="display: flex">
-              <md-dialog-actions>
-                <md-button class="md-primary" @click="handleExit"
-                  >Yes</md-button
-                >
-                <md-button class="md-primary" @click="isExit = !isExit"
-                  >No</md-button
-                >
-              </md-dialog-actions>
-            </div>
-          </md-dialog>
-        </div>
       </div>
 
       <div class="rightSide">
         <div class="container-top">
-          <h1>Ulat Bulu</h1>
-          <md-button
-            class="md-raised md-primary btn-login"
-            @click="openModal('exit-room')"
-          >
-            Exit
-          </md-button>
+          <div style="display: flex; flex-direction: column">
+            <h1>Ulat Bulu</h1>
+            <div>
+              <md-button
+                class="md-raised md-primary btn-login"
+                @click="isExit = !isExit"
+              >
+                Exit
+              </md-button>
+              <md-button
+                class="md-raised md-primary btn-login"
+                @click="isPassword = !isPassword"
+              >
+                Change Password
+              </md-button>
+            </div>
+          </div>
         </div>
         <!-- CANVASS -->
         <div class="canvas" v-if="isTurn">
@@ -76,45 +69,104 @@
           ></md-progress-bar>
         </div>
         <h3>Time Out</h3>
-        <template v-if="isPlaying">
-          <md-button @click="handleTurn" class="md-raised md-primary btn-login"
-            >Next</md-button
+        <div style="display: flex">
+          <template v-if="isPlaying">
+            <md-button
+              @click="handleTurn"
+              class="md-raised md-primary btn-login"
+              >Next</md-button
+            >
+            <md-button @click="resetGame" class="md-raised md-primary btn-login"
+              >Reset Game</md-button
+            >
+            <md-button
+              @click="isVoting = !isVoting"
+              class="md-raised md-primary btn-login"
+            >
+              Voting
+            </md-button>
+            <md-button
+              class="md-raised md-primary btn-login"
+              type="submit"
+              @click="endGame"
+            >
+              Result
+            </md-button>
+          </template>
+          <md-button
+            @click="startGame"
+            class="md-raised md-primary btn-login"
+            v-else
+            >Play</md-button
           >
-          <md-button @click="resetGame" class="md-raised md-primary btn-login"
-            >Reset Game</md-button
-          >
-        </template>
-        <md-button
-          @click="startGame"
-          class="md-raised md-primary btn-login"
-          v-else
-          >Play</md-button
-        >
+        </div>
       </div>
     </div>
 
     <div class="bottomSide">
-      <!-- MODAL VOTE -->
-      <!-- <Dialog class="vote-modal" :isCloseButtonShown="true" :isOpen="false" :usePortal="true">
-        <h3>It's Vote Time!!!</h3>
-        <h5>click to select the wrong one</h5>
-        <RadioGroup :selectedValue="selected" class="vote-radio">
-          <Radio label="budi" value="budi" />
-          <Radio label="ayu" value="ayu" />
-          <Radio label="dewi" value="dewi" />
-          <Radio label="agung" value="agung" />
-          <Radio label="putri" value="putri" />
-          <Radio label="putra" value="putra" />
-        </RadioGroup>
-        <h4>Time Out</h4>
-        <ProgressBar />
-      </Dialog> -->
-      <div></div>
-
       <div class="chatSide">
         <ul id="messages"></ul>
         <input type="text" v-model="message" @keyup.enter="sendChat" />
       </div>
+    </div>
+
+    <!-- MODAL CHANGE PASSWORD -->
+    <div>
+      <md-dialog :md-active.sync="isPassword">
+        <h2 class="card-title">Change Password</h2>
+        <div>
+          <label>Password</label>
+          <input type="text" v-model="password" />
+          <md-dialog-actions>
+            <md-button class="md-primary" @click="changePassword"
+              >Save</md-button
+            >
+            <md-button class="md-primary" @click="isPassword = !isPassword"
+              >Cancel</md-button
+            >
+          </md-dialog-actions>
+        </div>
+      </md-dialog>
+    </div>
+    <!-- MODAL EXIT ROOM -->
+    <div>
+      <md-dialog :md-active.sync="isExit">
+        <h2 class="card-title">Exit the room ?</h2>
+        <div style="display: flex">
+          <md-dialog-actions>
+            <md-button class="md-primary" @click="handleExit">Yes</md-button>
+            <md-button class="md-primary" @click="isExit = !isExit"
+              >No</md-button
+            >
+          </md-dialog-actions>
+        </div>
+      </md-dialog>
+    </div>
+    <!-- MODAL VOTE -->
+    <div>
+      <md-dialog :md-active.sync="isVoting">
+        <md-dialog-title>Vote player</md-dialog-title>
+        <div v-for="(player, index) in playersInRoom" :key="index">
+          <div class="form-group">
+            <input
+              large
+              :id="player.name"
+              type="radio"
+              maxLength="20"
+              placeholder="Maximum length = 20"
+              :value="index"
+              v-model="radioValue"
+              required
+            />
+            <label :for="player.name">{{ player.name }}</label>
+          </div>
+        </div>
+        <md-dialog-actions>
+          <md-button class="md-primary" type="submit" @click="votingUndercover">
+            Vote
+          </md-button>
+        </md-dialog-actions>
+      </md-dialog>
     </div>
   </div>
 </template>
@@ -129,46 +181,72 @@ export default {
   computed: {
     ...mapGetters(["inRoom", "playersInRoom", "rooms", "room", "playerId"]),
     isTurn() {
-      if (localStorage.isTurn === "false") {
-        return false;
+      if (
+        this.players &&
+        this.players.length !== 0 &&
+        this.players[0] === this.playerId
+      ) {
+        return true;
       }
-      return true;
+      return false;
     },
     isPlaying() {
       if (this.room) {
         return this.room.isPlaying;
       }
       return false;
+    },
+    players() {
+      if (this.room && this.room.shufflePlayers) {
+        return this.room.shufflePlayers;
+      }
+      return [];
     }
   },
   data() {
     return {
       isExit: false,
+      isVoting: false,
+      isPassword: false,
+      password: "",
+      radioValue: "",
       message: "",
       progress: 0,
       canvas: null,
       x: 0,
       y: 0,
+      width: 0,
+      height: 0,
       isDrawing: false,
       points: []
     };
   },
   methods: {
-    ...mapActions(["leaveRoom", "getPlayersInRoom", "fetchRoom"]),
-    ...mapMutations(["SET_PLAYERSINROOM"]),
+    ...mapActions([
+      "leaveRoom",
+      "getPlayersInRoom",
+      "fetchRoom",
+      "playGame",
+      "resetRoom",
+      "updateRoom",
+      "votingPlayer",
+      "getGameResult"
+    ]),
+    ...mapMutations(["SET_PLAYERSINROOM", "SET_ROOM"]),
+    async changePassword() {
+      await this.updateRoom({ ...this.room, password: this.password });
+      this.isPassword = !this.isPassword;
+      socket.emit("fetch all room");
+      socket.emit("fetch room");
+    },
     async handleExit() {
-      console.log("exit room");
-      console.log(this.inRoom, "inRoom");
       const id = this.inRoom
         ? this.inRoom.roomNumber
         : localStorage.getItem("roomId");
-      const left = await this.leaveRoom({
-        id,
-        playerId: this.playerId
-      });
-      console.log(left, "left");
+      const payload = { id, playerId: this.playerId };
+      const left = await this.leaveRoom(payload);
       if (left) {
-        socket.emit("leave room", id);
+        socket.emit("leave room", payload);
       } else {
         socket.emit("all players has left room");
       }
@@ -176,30 +254,39 @@ export default {
       this.isExit = false;
       this.$router.replace("/lobby");
     },
-    openModal(name) {
-      console.log(name);
-      this.isExit = true;
+    async startGame() {
+      const data = await this.playGame(this.room.roomNumber);
+      console.log(data, "start");
+      socket.emit("fetch all room");
+      socket.emit("fetch room");
     },
-    startGame() {
-      console.log(this.room, "start");
-    },
-    handleTurn() {
-      console.log("next");
-      const c = document.getElementById("canvasListen");
-      this.canvas.clearRect(0, 0, c.width, c.height);
+    async handleTurn() {
+      // const c = document.getElementById("canvasListen");
+      this.canvas.clearRect(0, 0, this.width, this.height);
       const points = [...this.points];
       this.points = [];
-      console.log(points, "points");
+      // console.log(points, "points");
       points.forEach(el => {
         this.listenLine(el.x1, el.y1, el.x2, el.y2);
       });
+      this.players.shift();
+      const payload = { ...this.room, shufflePlayers: this.players };
+      const updating = await this.updateRoom(payload);
+      if (updating) {
+        socket.emit("fetch room");
+      }
     },
-    resetGame() {
-      console.log(this.room, "reset");
+    async resetGame() {
+      await this.resetRoom(this.room.roomNumber);
+      socket.emit("fetch all room");
+      socket.emit("fetch room");
+    },
+    async endGame() {
+      const data = await this.getGameResult(this.room.roomNumber);
+      console.log(data);
     },
     sendChat() {
       if (this.message) {
-        console.log(this.message);
         const roomId = Number(localStorage.getItem("roomId"));
         const playerId = this.playerId;
         const payload = { chat: this.message, playerId, roomId };
@@ -250,6 +337,14 @@ export default {
         this.y = 0;
         this.isDrawing = false;
       }
+    },
+    async votingUndercover() {
+      const payload = {
+        roomNumber: this.room.roomNumber,
+        vote: this.room.Players[this.radioValue]
+      };
+      await this.votingPlayer(payload);
+      console.log(this.room, "after vote");
     }
   },
   mounted() {
@@ -259,6 +354,8 @@ export default {
     } else {
       c = document.getElementById("canvasListen");
     }
+    this.width = c.width;
+    this.height = c.height;
     if (c.getContext) {
       this.canvas = c.getContext("2d");
     }
@@ -266,8 +363,11 @@ export default {
   async created() {
     const roomId = localStorage.getItem("roomId");
     if (roomId) {
-      await this.fetchRoom(localStorage.getItem("roomId"));
-      await this.getPlayersInRoom(localStorage.getItem("roomId"));
+      await this.fetchRoom(roomId);
+      await this.getPlayersInRoom(roomId);
+      if (this.room.password) {
+        this.password = this.room.password;
+      }
     } else {
       this.$router.go(-1);
     }
@@ -275,7 +375,7 @@ export default {
       const li = document.createElement("LI");
       const strong = document.createElement("STRONG");
       let text;
-      if (payload.isJoin) {
+      if (payload.isJoin || payload.isLeft) {
         text = document.createTextNode(`${payload.player} ${payload.message}`);
         strong.appendChild(text);
         li.appendChild(strong);
@@ -289,12 +389,13 @@ export default {
       document.querySelector("#messages").appendChild(li);
     });
     socket.on("player joined the room", async room => {
-      console.log(room, "socket on joined the room");
       await this.getPlayersInRoom(room.roomNumber);
     });
     socket.on("player left the room", async room => {
-      console.log(room, "socket leave room");
       await this.getPlayersInRoom(room.roomNumber);
+    });
+    socket.on("fetch room", async () => {
+      await this.fetchRoom(roomId);
     });
     socket.on("draw canvas", ({ x1, y1, x2, y2 }) => {
       this.listenLine(x1, y1, x2, y2);

@@ -84,8 +84,12 @@ export default new Vuex.Store({
   },
   actions: {
     async postPlayer(context, payload) {
-      const { data } = await firebaseServer.post("/players", payload);
-      return data;
+      try {
+        const { data } = await firebaseServer.post("/players", payload);
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
     },
     async getPlayer(context, id) {
       try {
@@ -96,19 +100,27 @@ export default new Vuex.Store({
       }
     },
     async fetchRooms(context) {
-      const { data } = await firebaseServer.get("/rooms");
-      if (data === null || data.length === 0) {
-        context.commit("SET_ROOMS", []);
-      } else {
-        context.commit("SET_ROOMS", data);
+      try {
+        const { data } = await firebaseServer.get("/rooms");
+        if (data === null || data.length === 0) {
+          context.commit("SET_ROOMS", []);
+        } else {
+          context.commit("SET_ROOMS", data);
+        }
+        return data;
+      } catch (err) {
+        console.log(err.response);
       }
-      return data;
     },
-    async postRooms(context, value) {
-      const { data } = await firebaseServer.post("/rooms", value);
-      context.dispatch("fetchRoom");
-      context.commit("SET_INROOM", data);
-      return data;
+    async createRoom(context, value) {
+      try {
+        const { data } = await firebaseServer.post("/rooms", value);
+        context.dispatch("fetchRoom");
+        context.commit("SET_INROOM", data);
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
     },
     async mapPlayers(context, payload) {
       let players = [];
@@ -142,6 +154,7 @@ export default new Vuex.Store({
       return false;
     },
     async getPlayersInRoom(context, roomNumber) {
+      console.log(roomNumber, "get players");
       const { data } = await firebaseServer.get(`/rooms/${roomNumber}`);
       let players = [];
       if (data.Players && data.Players.length !== 0) {
@@ -153,10 +166,65 @@ export default new Vuex.Store({
       context.commit("SET_PLAYERSINROOM", players);
     },
     async fetchRoom(context, roomNumber) {
-      const { data } = await firebaseServer.get(`/rooms/${roomNumber}`);
-      console.log(data, "fetch room");
-      context.commit("SET_ROOM", data);
-      return data;
+      try {
+        const { data } = await firebaseServer.get(`/rooms/${roomNumber}`);
+        console.log(data, "fetch room");
+        context.commit("SET_ROOM", data);
+        return data;
+      } catch (err) {
+        console.log(err.response, "fetch");
+      }
+    },
+    async updateRoom(context, payload) {
+      try {
+        const data = await firebaseServer.put(
+          `/rooms/${payload.roomNumber}`,
+          payload
+        );
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
+    },
+    async playGame(context, roomNumber) {
+      try {
+        const { data } = await firebaseServer.get(`/rooms/${roomNumber}/play`);
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
+    },
+    async resetRoom(context, roomNumber) {
+      try {
+        const { data } = await firebaseServer.get(
+          `/rooms/${roomNumber}/resetRoom`
+        );
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
+    },
+    async votingPlayer(context, payload) {
+      try {
+        const { data } = await firebaseServer.patch(
+          `/rooms/${payload.roomNumber}/voting`,
+          payload
+        );
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
+    },
+    async getGameResult(context, roomNumber) {
+      try {
+        const { data } = await firebaseServer.get(
+          `/rooms/${roomNumber}/result`
+        );
+        console.log(data);
+        return data;
+      } catch (err) {
+        console.log(err.response);
+      }
     }
   },
   modules: {}

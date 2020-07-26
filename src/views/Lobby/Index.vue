@@ -118,7 +118,7 @@
           />
         </div>
         <md-dialog-actions>
-          <md-button class="md-primary" type="submit" @click="createRoom">
+          <md-button class="md-primary" type="submit" @click="createNewRoom">
             Create
           </md-button>
           <md-button class="md-primary" @click="isCreate = !isCreate">
@@ -158,22 +158,19 @@ export default {
     };
   },
   methods: {
-    ...mapActions(["fetchRooms", "postRooms", "joinRoom"]),
+    ...mapActions(["fetchRooms", "createRoom", "joinRoom"]),
     closeModal() {
       this.isCreate = false;
       this.isLocked = false;
       this.isError = false;
     },
-    async createRoom() {
+    async createNewRoom() {
       const newRoom = {
         roomName: this.roomName,
         password: this.roomPassword,
         playerId: this.playerId
       };
-      const data = await this.postRooms(newRoom);
-      this.roomPassword = "";
-      this.roomName = "";
-      this.closeModal();
+      const data = await this.createRoom(newRoom);
       if (data) {
         const payload = {
           roomNumber: data.roomNumber,
@@ -184,6 +181,9 @@ export default {
         localStorage.setItem("roomId", data.roomNumber);
         this.$router.replace("/room");
       }
+      this.roomPassword = "";
+      this.roomName = "";
+      this.closeModal();
     },
     async refreshRooms() {
       await this.fetchRooms();
@@ -198,7 +198,6 @@ export default {
           playerId: this.playerId
         };
         const data = await this.joinRoom(payload);
-        // axios enter room
         if (data) {
           const room = { roomNumber: data.roomNumber, playerId: this.playerId };
           socket.emit("join room", room);
@@ -232,6 +231,12 @@ export default {
     socket.on("all players has left room", () => {
       this.fetchRooms();
     });
+    socket.on("fetch all room", () => {
+      this.fetchRooms();
+    });
+  },
+  beforeDestroy() {
+    socket.removeAllListeners();
   }
 };
 </script>

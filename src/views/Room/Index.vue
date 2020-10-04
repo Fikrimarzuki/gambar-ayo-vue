@@ -28,8 +28,11 @@
       <div class="rightSide">
         <div class="container-top">
           <div style="display: flex; flex-direction: column">
-            <h1>Ulat Bulu</h1>
-            <div>
+            <h3 v-if="gameOver">
+              {{ resultMessage }}
+            </h3>
+            <h1 v-else>Ulat Bulu</h1>
+            <div v-if="!isPlaying">
               <md-button
                 class="md-raised md-primary btn-login"
                 @click="isExit = !isExit"
@@ -69,29 +72,29 @@
           ></md-progress-bar>
         </div>
         <h3>Time Out</h3>
-        <div style="display: flex">
+        <div style="display: flex" v-if="isMaster">
           <template v-if="isPlaying">
             <md-button
               @click="handleTurn"
               class="md-raised md-primary btn-login"
               >Next</md-button
             >
-            <md-button @click="resetGame" class="md-raised md-primary btn-login"
+            <!-- <md-button @click="resetGame" class="md-raised md-primary btn-login"
               >Reset Game</md-button
-            >
-            <md-button
+            > -->
+            <!-- <md-button
               @click="isVoting = !isVoting"
               class="md-raised md-primary btn-login"
             >
               Voting
-            </md-button>
-            <md-button
+            </md-button> -->
+            <!-- <md-button
               class="md-raised md-primary btn-login"
               type="submit"
               @click="endGame"
             >
               Result
-            </md-button>
+            </md-button> -->
           </template>
           <md-button
             @click="startGame"
@@ -145,7 +148,7 @@
     <!-- MODAL VOTE -->
     <div>
       <md-dialog :md-active.sync="isVoting">
-        <md-dialog-title>Vote player</md-dialog-title>
+        <md-dialog-title>Its time to vote a player</md-dialog-title>
         <div v-for="(player, index) in playersInRoom" :key="index">
           <div class="form-group">
             <input
@@ -176,8 +179,31 @@ import { mapGetters, mapActions, mapMutations } from "vuex";
 import socket from "./socket";
 import "./style.css";
 
+let timeoutVoting = 0;
+
 export default {
   name: "Room",
+  data() {
+    return {
+      isExit: false,
+      isVoting: false,
+      isPassword: false,
+      password: "",
+      radioValue: "",
+      message: "",
+      progress: 0,
+      canvas: null,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      isDrawing: false,
+      points: [],
+      playersVoting: 0,
+      resultMessage: "",
+      gameOver: false
+    };
+  },
   computed: {
     ...mapGetters(["inRoom", "playersInRoom", "rooms", "room", "playerId"]),
     isTurn() {
@@ -201,25 +227,13 @@ export default {
         return this.room.shufflePlayers;
       }
       return [];
+    },
+    isMaster() {
+      const isMaster = this.playersInRoom.filter(
+        el => el.id === this.playerId && el.isMaster
+      );
+      return isMaster.length ? true : false;
     }
-  },
-  data() {
-    return {
-      isExit: false,
-      isVoting: false,
-      isPassword: false,
-      password: "",
-      radioValue: "",
-      message: "",
-      progress: 0,
-      canvas: null,
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-      isDrawing: false,
-      points: []
-    };
   },
   methods: {
     ...mapActions([
@@ -256,6 +270,10 @@ export default {
     },
     async startGame() {
       const data = await this.playGame(this.room.roomNumber);
+      this.gameOver = false; // socket
+      this.playersVoting = 0; // socket
+      this.radioValue = ""; // socket
+      this.canvas.clearRect(0, 0, this.width, this.height); // socket-reset canvass
       console.log(data, "start");
       socket.emit("fetch all room");
       socket.emit("fetch room");
@@ -270,10 +288,18 @@ export default {
         this.listenLine(el.x1, el.y1, el.x2, el.y2);
       });
       this.players.shift();
-      const payload = { ...this.room, shufflePlayers: this.players };
-      const updating = await this.updateRoom(payload);
-      if (updating) {
-        socket.emit("fetch room");
+      // Players who play is no length, vote time or reset player turn and continue game
+      if (this.players.length === 0) {
+        // set time and show vote dialog - send isVoting and radioValue to socket
+        this.radioValue = "";
+        this.isVoting = true;
+        console.log("next turn");
+      } else {
+        const payload = { ...this.room, shufflePlayers: this.players };
+        const updating = await this.updateRoom(payload);
+        if (updating) {
+          socket.emit("fetch room");
+        }
       }
     },
     async resetGame() {
@@ -283,7 +309,15 @@ export default {
     },
     async endGame() {
       const data = await this.getGameResult(this.room.roomNumber);
-      console.log(data);
+      console.log(data, "END GAME");
+      if (data.gameOver) {
+        // send with socket
+        this.gameOver = true;
+        this.resultMessage = data.msg;
+        this.resetGame();
+      } else {
+        console.log("not end-reset turn, silence player and continue the game");
+      }
     },
     sendChat() {
       if (this.message) {
@@ -344,7 +378,18 @@ export default {
         vote: this.room.Players[this.radioValue]
       };
       await this.votingPlayer(payload);
-      console.log(this.room, "after vote");
+      this.isVoting = false;
+      console.log("VOTING TIME");
+      // send with socket to get number of player who has been voted and add to playersVoting
+      this.playersVoting++; // socket
+      if (this.playersVoting === this.playersInRoom.length || timeoutVoting) {
+        console.log(this.room, "after vote");
+        // set time to wait for other player to voting
+        // if done, show the result
+        this.endGame();
+      } else {
+        // set loading to wait other player voting
+      }
     }
   },
   mounted() {
@@ -365,6 +410,7 @@ export default {
     if (roomId) {
       await this.fetchRoom(roomId);
       await this.getPlayersInRoom(roomId);
+      console.log(this.playersInRoom);
       if (this.room.password) {
         this.password = this.room.password;
       }

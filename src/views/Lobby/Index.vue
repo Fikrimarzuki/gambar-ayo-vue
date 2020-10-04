@@ -8,9 +8,7 @@
     </div>
     <div v-else>
       <div class="md-layout md-gutter md-alignment-center-center">
-        <div
-          class="md-layout-item md-large-size-100 md-medium-size-100 md-small-size-100"
-        >
+        <div class="md-layout-item md-size-100">
           <button class="margin" @click="isCreate = !isCreate">
             {{ $t("createRoom.btnCreate") }}
           </button>

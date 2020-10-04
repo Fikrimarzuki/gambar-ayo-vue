@@ -105,7 +105,7 @@ export default {
         name: this.name,
         avatar: this.usedAvatar
       };
-      const { playerId } = await this.postPlayer(playerData);
+      const playerId = await this.postPlayer(playerData);
       if (playerId) {
         Cookies.set("g-a-player-data", playerId, { expires: 2 });
         this.SET_PLAYERID(playerId);

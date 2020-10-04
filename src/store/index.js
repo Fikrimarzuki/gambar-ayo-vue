@@ -154,13 +154,12 @@ export default new Vuex.Store({
       return false;
     },
     async getPlayersInRoom(context, roomNumber) {
-      console.log(roomNumber, "get players");
       const { data } = await firebaseServer.get(`/rooms/${roomNumber}`);
       let players = [];
       if (data.Players && data.Players.length !== 0) {
         await data.Players.forEach(async el => {
           let player = await firebaseServer.get(`/players/${el}`);
-          players.push(player.data);
+          players.push({ ...player.data, id: el });
         });
       }
       context.commit("SET_PLAYERSINROOM", players);
